@@ -4,6 +4,19 @@
 const express = require('express');
 const morgan = require('morgan');
 
+let askingJoke = false;
+const commonGreetings = ['hi', 'hello', 'howdy'];
+const commonGoodbyes = ['bye', 'goodbye', 'see you', 'adios'];
+const jokes = ['Why do we tell actors to break a leg?\ Because every play has a cast.',
+              "A woman in labour suddenly shouted, Shouldn’t! Wouldn’t! Couldn’t! Didn’t! Can’t\
+              Don’t worry, said the doctor. Those are just contractions.",
+              "Did you hear about the claustrophobic astronaut?\
+              He just needed a little space.",
+              "What sits at the bottom of the sea and twitches?\
+              A nervous wreck.",
+              'How does Moses make tea?\
+              He brews.']
+
 express()
   // Below are methods that are included in express(). We chain them for convenience.
   // --------------------------------------------------------------------------------
@@ -57,6 +70,52 @@ express()
   }, randomTime);
   })
 
+  .get('/bot-message', (req, res) => {
+    const messageIncludes = (matches, text) => {
+      let words = text.split(' ');
+      return matches.some(match => words.includes(match));
+    }
+
+    const tellJoke = () => {
+      const randomJoke = Math.floor(Math.random() * jokes.length);
+      return jokes[randomJoke];
+    }
+
+    const getBotMessage = text => {
+      const robotPrefix = 'Bzzt'
+      let botMsg = '';
+      text = text.toLowerCase();
+
+      const isGreeting = messageIncludes(commonGreetings, text);
+      const isGoodbye = messageIncludes(commonGoodbyes, text);
+
+      if (askingJoke) {
+        if (text.includes('yes') || text === 'y') {
+          botMsg = tellJoke();
+        }
+        if (text.includes('no') || text === 'no') {
+          botMsg = `${robotPrefix} Boring!`
+        }
+        askingJoke = false;
+      }
+      else if (isGreeting) botMsg = 'Hello!'
+      else if (isGoodbye) botMsg = 'Shutting down!'
+      else if (text.includes('something funny')) {
+        botMsg = 'Do you want to hear a joke?';
+        askingJoke = true;
+      }
+      else botMsg = `${robotPrefix} ${req.query.message}`;
+
+      return botMsg;
+    };
+
+    const message = { author: 'bot', text: getBotMessage(req.query.message) };
+    const randomTime = Math.floor(Math.random() * 3000);
+
+    setTimeout(() => {
+      res.status(200).json({ status: 200, message });
+    }, randomTime);
+  })
 
   // add new endpoints here ☝️
   // ---------------------------------
